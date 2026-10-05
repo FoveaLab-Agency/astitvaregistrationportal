@@ -14,7 +14,7 @@ function randomCode(length: number): string {
 }
 
 /**
- * Generate registration ID: ASR-26-NN-XXXXXXXX
+ * Generate registration ID: AST-26-NN-XXXXXXXX
  * NN = number of selected events (zero-padded to 2)
  * XXXXXXXX = 8 cryptographically random alphanumeric chars
  */
