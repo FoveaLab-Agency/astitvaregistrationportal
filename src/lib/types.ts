@@ -8,8 +8,6 @@ export type ParticipantData = {
   course: string;
   year_semester: string;
   city: string;
-  age: string;
-  gender: string;
 };
 
 export type PaymentData = {
@@ -36,8 +34,6 @@ export const EMPTY_PARTICIPANT: ParticipantData = {
   course: '',
   year_semester: '',
   city: '',
-  age: '',
-  gender: '',
 };
 
 export const EMPTY_PAYMENT: PaymentData = {
