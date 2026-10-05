@@ -13,7 +13,11 @@ export function getQrCodeUrl(data: string, size: number = 200): string {
   return `${QR_BASE}?${params.toString()}`;
 }
 
+/**
+ * Build the public verification URL encoded into the QR.
+ * Uses the qr_token, not personal info.
+ */
 export function getVerificationUrl(qrToken: string): string {
-  const baseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-  return `${baseUrl}/functions/v1/verify-registration?token=${qrToken}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://astitva.app';
+  return `${origin}/#/verify/${qrToken}`;
 }

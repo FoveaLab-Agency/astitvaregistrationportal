@@ -4,21 +4,46 @@ import type { EventRow, RegistrationRow } from './supabase';
 const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function randomCode(length: number): string {
-  let result = '';
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);
+  let result = '';
   for (let i = 0; i < length; i++) {
     result += CHARSET[array[i] % CHARSET.length];
   }
   return result;
 }
 
-export function generateRegistrationId(): string {
-  return `AST-26-${randomCode(6)}`;
+/**
+ * Generate registration ID: ASR-26-NN-XXXXXXXX
+ * NN = number of selected events (zero-padded to 2)
+ * XXXXXXXX = 8 cryptographically random alphanumeric chars
+ */
+export function generateRegistrationId(eventCount: number): string {
+  const padded = String(eventCount).padStart(2, '0');
+  return `ASR-26-${padded}-${randomCode(8)}`;
 }
 
 export function generateQrToken(): string {
   return `${randomCode(8)}-${randomCode(8)}-${randomCode(8)}`;
+}
+
+/**
+ * Check that the generated registration_id doesn't already exist.
+ * If it does (astronomically unlikely), retry up to 5 times.
+ */
+export async function generateUniqueRegistrationId(eventCount: number): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const id = generateRegistrationId(eventCount);
+    const { data, error } = await supabase
+      .from('registrations_new')
+      .select('registration_id')
+      .eq('registration_id', id)
+      .maybeSingle();
+
+    if (error) throw new Error('Unable to verify registration ID uniqueness. Please try again.');
+    if (!data) return id;
+  }
+  throw new Error('Unable to generate a unique registration ID. Please try again.');
 }
 
 export async function checkDuplicate(mobile: string, email: string): Promise<boolean> {
@@ -30,7 +55,6 @@ export async function checkDuplicate(mobile: string, email: string): Promise<boo
     .maybeSingle();
 
   if (error) {
-    console.error('Duplicate check error:', error);
     throw new Error('Unable to verify identity. Please try again.');
   }
 
@@ -45,8 +69,7 @@ export async function fetchActiveEvents(): Promise<EventRow[]> {
     .order('name', { ascending: true });
 
   if (error) {
-    console.error('Fetch events error:', error);
-    throw new Error('Unable to load orbits. Please try again.');
+    throw new Error('Unable to load events. Please try again.');
   }
 
   return (data as EventRow[]) ?? [];
@@ -59,12 +82,18 @@ export async function fetchRegistrationByPublicId(publicId: string): Promise<Reg
     .eq('registration_id', publicId.trim().toUpperCase())
     .maybeSingle();
 
-  if (error) {
-    console.error('Fetch registration error:', error);
-    return null;
-  }
-
+  if (error) return null;
   return data as RegistrationRow | null;
+}
+
+export async function fetchRegistrationEvents(regUuid: string): Promise<{ event_id: string; price_at_registration: number }[]> {
+  const { data, error } = await supabase
+    .from('registration_events_new')
+    .select('event_id, price_at_registration')
+    .eq('registration_id', regUuid);
+
+  if (error) return [];
+  return (data as { event_id: string; price_at_registration: number }[]) ?? [];
 }
 
 export async function uploadPaymentScreenshot(
@@ -82,7 +111,6 @@ export async function uploadPaymentScreenshot(
     });
 
   if (error) {
-    console.error('Upload error:', error);
     throw new Error('Unable to upload payment screenshot. Please try again.');
   }
 
@@ -137,28 +165,31 @@ export async function insertRegistration(
     .single();
 
   if (error || !data) {
-    console.error('Insert registration error:', error);
-    throw new Error('Unable to complete registration. Please try again.');
+    throw new Error(error?.message || 'Unable to complete registration. Please try again.');
   }
 
   return { id: data.id };
 }
 
-export async function insertRegistrationEvent(
+/**
+ * Insert multiple registration-event links in a single batch call.
+ * Uses the registration's UUID (registrations_new.id), NOT the public text registration_id.
+ */
+export async function insertRegistrationEvents(
   registrationUuid: string,
-  eventId: string,
-  priceAtRegistration: number
+  events: { id: string; price: number }[]
 ): Promise<void> {
+  const rows = events.map((e) => ({
+    registration_id: registrationUuid,
+    event_id: e.id,
+    price_at_registration: e.price,
+  }));
+
   const { error } = await supabase
     .from('registration_events_new')
-    .insert({
-      registration_id: registrationUuid,
-      event_id: eventId,
-      price_at_registration: priceAtRegistration,
-    });
+    .insert(rows);
 
   if (error) {
-    console.error('Insert registration_event error:', error);
-    throw new Error('Unable to link event to registration. Please try again.');
+    throw new Error(error.message || 'Unable to link events to registration. Please try again.');
   }
 }

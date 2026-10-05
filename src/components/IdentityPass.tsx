@@ -1,4 +1,4 @@
-import { ArrowLeft, Printer, Download } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
 import Starfield from './Starfield';
 import { getQrCodeUrl, getVerificationUrl } from '@/lib/qr';
 import type { RegistrationResult } from '@/lib/types';
@@ -31,7 +31,7 @@ export default function IdentityPass({ result, participant, onBack }: IdentityPa
               Identity Pass
             </span>
           </h2>
-          <p className="text-gray-400 text-sm">Your cosmic identity within the ASTITVA universe.</p>
+          <p className="text-gray-400 text-sm">Your identity within the ASTITVA universe.</p>
         </div>
 
         {/* Pass preview (on-screen dark version) */}
@@ -45,12 +45,28 @@ export default function IdentityPass({ result, participant, onBack }: IdentityPa
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <PassField label="Registration ID" value={result.registrationId} mono />
             <PassField label="Participant Name" value={participant.full_name} />
+            <PassField label="Gender" value={result.gender} />
             <PassField label="College" value={participant.college} />
             <PassField label="Course" value={participant.course} />
             <PassField label="Year / Semester" value={participant.year_semester} />
             <PassField label="Mobile" value={participant.mobile} />
-            <PassField label="Selected Event" value={result.eventName} />
+            <PassField label="Total Amount" value={`₹${result.totalAmount}`} />
             <PassField label="Payment Status" value={result.paymentStatus} capitalize />
+          </div>
+
+          {/* Selected events */}
+          <div className="mb-6 pt-4 border-t border-stellar-200/15">
+            <p className="text-[10px] tracking-[0.15em] uppercase text-stellar-300/50 mb-3">
+              Selected Events ({result.selectedEvents.length})
+            </p>
+            <div className="space-y-1.5">
+              {result.selectedEvents.map((e) => (
+                <div key={e.id} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">{e.name}</span>
+                  <span className="font-mono text-xs text-gray-500">₹{e.price}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex flex-col items-center pt-6 border-t border-stellar-200/15">
@@ -58,6 +74,9 @@ export default function IdentityPass({ result, participant, onBack }: IdentityPa
             <div className="p-3 bg-white rounded-xl">
               <img src={qrUrl} alt="Identity Pass QR" width={120} height={120} className="rounded-lg" />
             </div>
+            <p className="text-xs text-gray-600 mt-3 text-center">
+              Scan this QR to verify your registration
+            </p>
           </div>
         </div>
 
@@ -73,38 +92,47 @@ export default function IdentityPass({ result, participant, onBack }: IdentityPa
         </div>
       </div>
 
-      {/* Print version — 2x2 grid, A4 */}
+      {/* Print version */}
       <div className="hidden print-page print:block">
-        <div className="grid grid-cols-2 gap-0 w-full">
-          {[0, 1, 2, 3].map((idx) => (
-            <div
-              key={idx}
-              className="print-pass border-2 border-cyan-500 p-6 m-1 min-h-[49vh] flex flex-col"
-            >
-              <div className="text-center mb-3 pb-3 border-b-2 border-cyan-500">
-                <h3 className="text-xl font-bold tracking-[0.15em] text-gray-900">ASTITVA</h3>
-                <p className="text-[8px] tracking-[0.2em] uppercase text-gray-600 mt-0.5">Emergence Beyond Existence</p>
-                <p className="text-[9px] tracking-[0.2em] uppercase text-cyan-600 font-bold mt-1 print-accent">Identity Pass</p>
-              </div>
-              <div className="flex-1 space-y-1.5">
+        <div className="w-full">
+          <div className="print-pass border-2 border-cyan-500 p-8 m-2 flex flex-col min-h-[90vh]">
+            <div className="text-center mb-4 pb-4 border-b-2 border-cyan-500">
+              <h3 className="text-2xl font-bold tracking-[0.15em] text-gray-900">ASTITVA</h3>
+              <p className="text-[9px] tracking-[0.2em] uppercase text-gray-600 mt-0.5">Emergence Beyond Existence</p>
+              <p className="text-[10px] tracking-[0.2em] uppercase text-cyan-600 font-bold mt-1 print-accent">Identity Pass</p>
+            </div>
+            <div className="flex-1">
+              <div className="grid grid-cols-2 gap-2 mb-4">
                 <PrintField label="Reg. ID" value={result.registrationId} />
                 <PrintField label="Name" value={participant.full_name} />
+                <PrintField label="Gender" value={result.gender} />
                 <PrintField label="College" value={participant.college} />
                 <PrintField label="Course" value={participant.course} />
                 <PrintField label="Year/Sem" value={participant.year_semester} />
                 <PrintField label="Mobile" value={participant.mobile} />
-                <PrintField label="Event" value={result.eventName} />
+                <PrintField label="Amount" value={`₹${result.totalAmount}`} />
                 <PrintField label="Payment" value={result.paymentStatus} />
               </div>
-              <div className="flex items-end justify-between mt-3 pt-3 border-t border-gray-300">
-                <div className="text-[7px] text-gray-500">
-                  <p>Scan to verify</p>
-                  <p className="font-mono text-[6px]">{result.registrationId}</p>
+              <div className="mb-4">
+                <p className="text-[8px] uppercase tracking-wider text-gray-500 mb-1">Selected Events ({result.selectedEvents.length})</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                  {result.selectedEvents.map((e) => (
+                    <div key={e.id} className="flex justify-between border-b border-gray-200 py-0.5">
+                      <span className="text-[9px] text-gray-700">{e.name}</span>
+                      <span className="text-[8px] font-mono text-gray-500">₹{e.price}</span>
+                    </div>
+                  ))}
                 </div>
-                <img src={qrUrl} alt="QR" width={80} height={80} className="rounded" />
               </div>
             </div>
-          ))}
+            <div className="flex items-end justify-between pt-3 border-t border-gray-300">
+              <div className="text-[7px] text-gray-500">
+                <p>Scan to verify</p>
+                <p className="font-mono text-[6px]">{result.registrationId}</p>
+              </div>
+              <img src={qrUrl} alt="QR" width={90} height={90} className="rounded" />
+            </div>
+          </div>
         </div>
       </div>
     </section>

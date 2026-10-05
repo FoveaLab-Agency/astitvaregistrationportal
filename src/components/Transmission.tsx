@@ -2,19 +2,19 @@ import { useRef, useState } from 'react';
 import { ArrowRight, ArrowLeft, Upload, QrCode, CheckCircle2, Image as ImageIcon, X } from 'lucide-react';
 import ProgressIndicator from './ProgressIndicator';
 import Starfield from './Starfield';
-import { validatePayment, getUpiQrString, UPI_ID, type PaymentData } from '@/lib/types';
+import { validatePayment, getUpiQrString, UPI_ID, calculateTotal, countByType, type PaymentData } from '@/lib/types';
 import { getQrCodeUrl } from '@/lib/qr';
 import type { EventRow } from '@/lib/supabase';
 
 type TransmissionProps = {
   payment: PaymentData;
   onChange: (data: PaymentData) => void;
-  selectedEvent: EventRow | null;
+  selectedEvents: EventRow[];
   onBack: () => void;
   onContinue: () => void;
 };
 
-export default function Transmission({ payment, onChange, selectedEvent, onBack, onContinue }: TransmissionProps) {
+export default function Transmission({ payment, onChange, selectedEvents, onBack, onContinue }: TransmissionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -22,6 +22,10 @@ export default function Transmission({ payment, onChange, selectedEvent, onBack,
 
   const upiString = getUpiQrString();
   const qrUrl = getQrCodeUrl(upiString, 220);
+  const total = calculateTotal(selectedEvents);
+  const counts = countByType(selectedEvents);
+  const individualTotal = counts.individual * 100;
+  const groupTotal = counts.group * 300;
 
   const handleFile = (file: File) => {
     if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
@@ -76,22 +80,54 @@ export default function Transmission({ payment, onChange, selectedEvent, onBack,
         <ProgressIndicator current="transmission" />
 
         <div className="glass-panel p-6 md:p-10 animate-scale-in">
-          {/* Payment summary */}
+          {/* Payment breakdown */}
           <div className="rounded-xl bg-cosmos-900/60 border border-stellar-200/10 p-5 mb-8">
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-stellar-200/10">
-              <div>
-                <p className="text-[10px] tracking-[0.2em] uppercase text-stellar-300/50 mb-1">Selected Orbit</p>
-                <p className="text-sm text-white font-medium">{selectedEvent?.name}</p>
+            <p className="text-[10px] tracking-[0.2em] uppercase text-stellar-300/50 mb-4">Payment Summary</p>
+
+            {/* Selected events list */}
+            <div className="space-y-2 mb-4 pb-4 border-b border-stellar-200/10">
+              {selectedEvents.map((e) => (
+                <div key={e.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
+                      e.event_type === 'Group' ? 'bg-stellar-200/8 text-stellar-300/60' : 'bg-gray-500/10 text-gray-400'
+                    }`}>
+                      {e.event_type === 'Group' ? 'GRP' : 'IND'}
+                    </span>
+                    <span className="text-sm text-gray-300 truncate">{e.name}</span>
+                  </div>
+                  <span className="font-mono text-sm text-gray-400 ml-2 flex-shrink-0">₹{e.price}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Breakdown */}
+            <div className="space-y-1.5 mb-3">
+              {counts.individual > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">
+                    Individual events × ₹100 <span className="text-gray-600">({counts.individual})</span>
+                  </span>
+                  <span className="font-mono text-sm text-gray-300">₹{individualTotal}</span>
+                </div>
+              )}
+              {counts.group > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">
+                    Group events × ₹300 <span className="text-gray-600">({counts.group})</span>
+                  </span>
+                  <span className="font-mono text-sm text-gray-300">₹{groupTotal}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-gray-500">Number of events: {selectedEvents.length}</span>
               </div>
-              <span className="text-[10px] tracking-wider uppercase text-gray-500">{selectedEvent?.event_type}</span>
             </div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Registration Fee</span>
-              <span className="font-mono text-sm text-gray-300">₹{selectedEvent?.price}</span>
-            </div>
+
+            {/* Total */}
             <div className="flex items-center justify-between pt-3 border-t border-stellar-200/10">
               <span className="text-sm font-semibold text-white">Total Amount</span>
-              <span className="font-mono text-2xl font-bold text-stellar-300">₹{selectedEvent?.price}</span>
+              <span className="font-mono text-2xl font-bold text-stellar-300">₹{total}</span>
             </div>
           </div>
 
@@ -100,7 +136,7 @@ export default function Transmission({ payment, onChange, selectedEvent, onBack,
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-2 mb-4">
                 <QrCode size={16} className="text-stellar-300" strokeWidth={1.5} />
-                <span className="text-xs tracking-[0.15em] uppercase font-medium text-stellar-300/80">Scan to Pay</span>
+                <span className="text-xs tracking-[0.15em] uppercase font-medium text-stellar-300/80">Scan to Pay ₹{total}</span>
               </div>
               <div className="relative p-4 bg-white rounded-2xl">
                 <img src={qrUrl} alt="UPI Payment QR Code" width={200} height={200} className="rounded-lg" />

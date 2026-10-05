@@ -9,46 +9,56 @@ import Alignment from './components/Alignment';
 import Confirmation, { RegistrationLoading, RegistrationError } from './components/Confirmation';
 import IdentityPass from './components/IdentityPass';
 import ExistingOrbit from './components/ExistingOrbit';
+import VerifyPage from './components/VerifyPage';
 import type { EventRow } from './lib/supabase';
 import {
   EMPTY_PARTICIPANT,
   EMPTY_PAYMENT,
+  calculateTotal,
   type ParticipantData,
   type PaymentData,
   type RegistrationResult,
 } from './lib/types';
 import {
   checkDuplicate,
-  generateRegistrationId,
+  generateUniqueRegistrationId,
   generateQrToken,
   uploadPaymentScreenshot,
   insertRegistration,
-  insertRegistrationEvent,
+  insertRegistrationEvents,
 } from './lib/registration';
 
 type Phase = 'form' | 'loading' | 'error';
 
 export default function App() {
   const [view, setView] = useState<View>('universe');
-  const [selectedEvent, setSelectedEvent] = useState<EventRow | null>(null);
+  const [selectedEvents, setSelectedEvents] = useState<EventRow[]>([]);
   const [participant, setParticipant] = useState<ParticipantData>(EMPTY_PARTICIPANT);
   const [payment, setPayment] = useState<PaymentData>(EMPTY_PAYMENT);
   const [result, setResult] = useState<RegistrationResult | null>(null);
   const [phase, setPhase] = useState<Phase>('form');
   const [submitError, setSubmitError] = useState('');
-  const [duplicate, setDuplicate] = useState(false);
+
+  // Check if we're on a verification route: /#/verify/<token>
+  const hash = typeof window !== 'undefined' ? window.location.hash : '';
+  const verifyMatch = hash.match(/^#\/verify\/(.+)$/);
+  const verifyToken = verifyMatch ? verifyMatch[1] : null;
 
   const navigate = useCallback((v: View) => {
     setView(v);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
-  const handleEventSelect = (event: EventRow) => {
-    setSelectedEvent(event);
+  const handleToggleEvent = (event: EventRow) => {
+    setSelectedEvents((prev) => {
+      const exists = prev.some((e) => e.id === event.id);
+      if (exists) return prev.filter((e) => e.id !== event.id);
+      return [...prev, event];
+    });
   };
 
   const handleEventsContinue = () => {
-    if (selectedEvent) navigate('identity');
+    if (selectedEvents.length > 0) navigate('identity');
   };
 
   const handleIdentityContinue = () => {
@@ -60,7 +70,7 @@ export default function App() {
   };
 
   const handleConfirm = async () => {
-    if (!selectedEvent || !payment.screenshotFile) return;
+    if (selectedEvents.length === 0 || !payment.screenshotFile) return;
     setPhase('loading');
     setSubmitError('');
 
@@ -68,20 +78,20 @@ export default function App() {
       // Step 1: Duplicate check
       const isDuplicate = await checkDuplicate(participant.mobile, participant.email);
       if (isDuplicate) {
-        setDuplicate(true);
         setPhase('form');
         navigate('existing');
         return;
       }
 
-      // Step 2: Generate IDs
-      const registrationId = generateRegistrationId();
+      // Step 2: Generate unique registration ID based on event count
+      const registrationId = await generateUniqueRegistrationId(selectedEvents.length);
       const qrToken = generateQrToken();
 
       // Step 3: Upload screenshot
       const screenshotUrl = await uploadPaymentScreenshot(payment.screenshotFile, registrationId);
 
       // Step 4: Insert registration
+      const totalAmount = calculateTotal(selectedEvents);
       const { id: regUuid } = await insertRegistration({
         registration_id: registrationId,
         full_name: participant.full_name.trim(),
@@ -93,21 +103,25 @@ export default function App() {
         city: participant.city.trim(),
         age: parseInt(participant.age, 10),
         gender: participant.gender,
-        payment_amount: selectedEvent.price,
+        payment_amount: totalAmount,
         payment_utr: payment.utr.trim(),
         payment_screenshot_url: screenshotUrl,
         qr_token: qrToken,
       });
 
-      // Step 5: Insert registration-event link
-      await insertRegistrationEvent(regUuid, selectedEvent.id, selectedEvent.price);
+      // Step 5: Insert all registration-event links (batch)
+      await insertRegistrationEvents(
+        regUuid,
+        selectedEvents.map((e) => ({ id: e.id, price: Number(e.price) }))
+      );
 
       // Step 6: Success
       setResult({
         registrationId,
         participantName: participant.full_name.trim(),
-        eventName: selectedEvent.name,
-        amount: selectedEvent.price,
+        gender: participant.gender,
+        selectedEvents,
+        totalAmount,
         paymentStatus: 'pending',
         qrToken,
       });
@@ -126,12 +140,10 @@ export default function App() {
   };
 
   const handleHome = () => {
-    // Reset state for a new registration
-    setSelectedEvent(null);
+    setSelectedEvents([]);
     setParticipant(EMPTY_PARTICIPANT);
     setPayment(EMPTY_PAYMENT);
     setResult(null);
-    setDuplicate(false);
     setPhase('form');
     setSubmitError('');
     navigate('universe');
@@ -140,6 +152,11 @@ export default function App() {
   const handleEnterUniverse = () => {
     navigate('orbits');
   };
+
+  // Verification page (separate route)
+  if (verifyToken) {
+    return <VerifyPage token={verifyToken} />;
+  }
 
   // Loading state during submission
   if (phase === 'loading') {
@@ -175,8 +192,8 @@ export default function App() {
 
       {view === 'orbits' && (
         <Events
-          selectedEvent={selectedEvent}
-          onSelect={handleEventSelect}
+          selectedEvents={selectedEvents}
+          onToggle={handleToggleEvent}
           onContinue={handleEventsContinue}
         />
       )}
@@ -194,7 +211,7 @@ export default function App() {
         <Transmission
           payment={payment}
           onChange={setPayment}
-          selectedEvent={selectedEvent}
+          selectedEvents={selectedEvents}
           onBack={() => navigate('identity')}
           onContinue={handleTransmissionContinue}
         />
@@ -204,7 +221,7 @@ export default function App() {
         <Alignment
           participant={participant}
           payment={payment}
-          selectedEvent={selectedEvent}
+          selectedEvents={selectedEvents}
           onBack={() => navigate('transmission')}
           onConfirm={handleConfirm}
         />

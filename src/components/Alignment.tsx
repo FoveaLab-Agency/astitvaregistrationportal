@@ -2,20 +2,20 @@ import { useState } from 'react';
 import { ArrowRight, ArrowLeft, ShieldCheck, CheckCircle2, Image as ImageIcon } from 'lucide-react';
 import ProgressIndicator from './ProgressIndicator';
 import Starfield from './Starfield';
-import type { ParticipantData, PaymentData } from '@/lib/types';
+import { calculateTotal, countByType, type ParticipantData, type PaymentData } from '@/lib/types';
 import type { EventRow } from '@/lib/supabase';
 
 type AlignmentProps = {
   participant: ParticipantData;
   payment: PaymentData;
-  selectedEvent: EventRow | null;
+  selectedEvents: EventRow[];
   onBack: () => void;
   onConfirm: () => void;
 };
 
 const CONSENTS = [
   { id: 'accurate', text: 'I confirm that the information provided is accurate.' },
-  { id: 'no-change', text: 'I understand that my selected event cannot be changed after confirmation.' },
+  { id: 'no-change', text: 'I understand that my selected events cannot be changed after confirmation.' },
   { id: 'guidelines', text: 'I have read and agree to the event guidelines.' },
 ];
 
@@ -28,7 +28,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function Alignment({ participant, payment, selectedEvent, onBack, onConfirm }: AlignmentProps) {
+export default function Alignment({ participant, payment, selectedEvents, onBack, onConfirm }: AlignmentProps) {
   const [consents, setConsents] = useState<Record<string, boolean>>({
     accurate: false,
     'no-change': false,
@@ -37,6 +37,8 @@ export default function Alignment({ participant, payment, selectedEvent, onBack,
   const [error, setError] = useState('');
 
   const allConsented = Object.values(consents).every(Boolean);
+  const total = calculateTotal(selectedEvents);
+  const counts = countByType(selectedEvents);
 
   const handleConfirm = () => {
     if (!allConsented) {
@@ -88,19 +90,36 @@ export default function Alignment({ participant, payment, selectedEvent, onBack,
             </div>
           </div>
 
-          {/* Orbit */}
+          {/* Orbits — multi-event */}
           <div className="glass-panel p-6">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-8 h-8 rounded-full bg-stellar-200/10 border border-stellar-200/20 flex items-center justify-center">
                 <span className="font-mono text-[10px] text-stellar-300">01</span>
               </div>
-              <h3 className="font-display text-sm font-semibold tracking-wider uppercase text-stellar-300/80">Orbit</h3>
+              <h3 className="font-display text-sm font-semibold tracking-wider uppercase text-stellar-300/80">
+                Orbits ({selectedEvents.length} event{selectedEvents.length > 1 ? 's' : ''})
+              </h3>
             </div>
-            <DetailRow label="Selected Event" value={selectedEvent?.name ?? ''} />
-            <DetailRow label="Event Type" value={selectedEvent?.event_type ?? ''} />
-            <div className="flex items-center justify-between py-2.5 border-b border-stellar-200/8 last:border-0">
-              <span className="text-xs tracking-wider uppercase text-gray-500">Price</span>
-              <span className="font-mono text-sm text-stellar-300 font-semibold">₹{selectedEvent?.price}</span>
+            <div className="space-y-2 mb-3">
+              {selectedEvents.map((e) => (
+                <div key={e.id} className="flex items-center justify-between py-2 border-b border-stellar-200/8 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
+                      e.event_type === 'Group' ? 'bg-stellar-200/8 text-stellar-300/60' : 'bg-gray-500/10 text-gray-400'
+                    }`}>
+                      {e.event_type === 'Group' ? 'GRP' : 'IND'}
+                    </span>
+                    <span className="text-sm text-gray-200">{e.name}</span>
+                  </div>
+                  <span className="font-mono text-sm text-stellar-300">₹{e.price}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-gray-500">
+                {counts.individual} individual, {counts.group} group
+              </span>
+              <span className="font-mono text-base font-bold text-stellar-300">₹{total}</span>
             </div>
           </div>
 
@@ -112,7 +131,7 @@ export default function Alignment({ participant, payment, selectedEvent, onBack,
               </div>
               <h3 className="font-display text-sm font-semibold tracking-wider uppercase text-stellar-300/80">Transmission</h3>
             </div>
-            <DetailRow label="Amount" value={`₹${selectedEvent?.price}`} />
+            <DetailRow label="Amount" value={`₹${total}`} />
             <DetailRow label="UTR" value={payment.utr} />
             <div className="flex items-center justify-between py-2.5 border-b border-stellar-200/8 last:border-0">
               <span className="text-xs tracking-wider uppercase text-gray-500">Screenshot</span>

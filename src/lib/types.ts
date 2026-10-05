@@ -1,3 +1,5 @@
+import type { EventRow } from './supabase';
+
 export type ParticipantData = {
   full_name: string;
   mobile: string;
@@ -19,8 +21,9 @@ export type PaymentData = {
 export type RegistrationResult = {
   registrationId: string;
   participantName: string;
-  eventName: string;
-  amount: number;
+  gender: string;
+  selectedEvents: EventRow[];
+  totalAmount: number;
   paymentStatus: string;
   qrToken: string;
 };
@@ -42,6 +45,21 @@ export const EMPTY_PAYMENT: PaymentData = {
   screenshotFile: null,
   screenshotUrl: '',
 };
+
+export function calculateTotal(events: EventRow[]): number {
+  return events.reduce((sum, e) => sum + Number(e.price), 0);
+}
+
+export function countByType(events: EventRow[]): { individual: number; group: number } {
+  return events.reduce(
+    (acc, e) => {
+      if (e.event_type === 'Group') acc.group++;
+      else acc.individual++;
+      return acc;
+    },
+    { individual: 0, group: 0 }
+  );
+}
 
 export function validateParticipant(data: ParticipantData): Record<string, string> {
   const errors: Record<string, string> = {};

@@ -11,7 +11,7 @@ type IdentityProps = {
   onContinue: () => void;
 };
 
-const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
+const GENDERS = ['Male', 'Female', 'Other'];
 
 export default function Identity({ data, onChange, onBack, onContinue }: IdentityProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});

@@ -1,8 +1,7 @@
 import { CheckCircle2, ContactRound, Home, Loader2, AlertCircle } from 'lucide-react';
 import Starfield from './Starfield';
 import OrbitRings from './OrbitRings';
-import { getQrCodeUrl } from '@/lib/qr';
-import { getVerificationUrl } from '@/lib/qr';
+import { getQrCodeUrl, getVerificationUrl } from '@/lib/qr';
 import type { RegistrationResult } from '@/lib/types';
 
 type ConfirmationProps = {
@@ -33,10 +32,10 @@ export default function Confirmation({ result, onViewPass, onHome }: Confirmatio
             </div>
           </div>
 
-          <span className="section-label">Orbit Confirmed</span>
+          <span className="section-label">Registration Confirmed</span>
           <h2 className="cosmic-heading text-3xl sm:text-4xl md:text-5xl mt-3 mb-3">
             <span className="bg-gradient-to-b from-white to-stellar-300 bg-clip-text text-transparent">
-              Orbit Confirmed
+              Registration Confirmed
             </span>
           </h2>
           <p className="text-gray-400 text-sm leading-relaxed">
@@ -48,8 +47,8 @@ export default function Confirmation({ result, onViewPass, onHome }: Confirmatio
         <div className="glass-panel-strong p-6 md:p-8 animate-fade-in-up" style={{ animationDelay: '0.3s', opacity: 0 }}>
           {/* Registration ID */}
           <div className="text-center mb-6 pb-6 border-b border-stellar-200/10">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-stellar-300/50 mb-2">Your Cosmic Identity Code</p>
-            <p className="font-mono text-2xl md:text-3xl font-bold text-stellar-300 text-glow tracking-wider">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-stellar-300/50 mb-2">Registration ID</p>
+            <p className="font-mono text-2xl md:text-3xl font-bold text-stellar-300 text-glow tracking-wider break-all">
               {result.registrationId}
             </p>
           </div>
@@ -61,12 +60,16 @@ export default function Confirmation({ result, onViewPass, onHome }: Confirmatio
               <span className="text-sm text-white font-medium">{result.participantName}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs tracking-wider uppercase text-gray-500">Selected Event</span>
-              <span className="text-sm text-gray-200">{result.eventName}</span>
+              <span className="text-xs tracking-wider uppercase text-gray-500">Gender</span>
+              <span className="text-sm text-gray-200">{result.gender}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs tracking-wider uppercase text-gray-500">Events</span>
+              <span className="text-sm text-gray-200">{result.selectedEvents.length}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs tracking-wider uppercase text-gray-500">Amount Paid</span>
-              <span className="font-mono text-sm text-stellar-300 font-semibold">₹{result.amount}</span>
+              <span className="font-mono text-sm text-stellar-300 font-semibold">₹{result.totalAmount}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs tracking-wider uppercase text-gray-500">Payment Status</span>
@@ -74,6 +77,19 @@ export default function Confirmation({ result, onViewPass, onHome }: Confirmatio
                 <div className="w-1.5 h-1.5 rounded-full bg-yellow-400/60" />
                 <span className="text-xs text-yellow-400/80 capitalize">{result.paymentStatus}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Selected events list */}
+          <div className="mb-6 pt-4 border-t border-stellar-200/10">
+            <p className="text-[10px] tracking-[0.2em] uppercase text-stellar-300/50 mb-3">Selected Events</p>
+            <div className="space-y-1.5">
+              {result.selectedEvents.map((e) => (
+                <div key={e.id} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">{e.name}</span>
+                  <span className="font-mono text-xs text-gray-500">₹{e.price}</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -118,7 +134,7 @@ export function RegistrationLoading() {
           </div>
           <Loader2 size={28} className="text-stellar-300 animate-spin" strokeWidth={1.5} />
         </div>
-        <p className="text-sm text-gray-400 tracking-wider">Entering the universe...</p>
+        <p className="text-sm text-gray-400 tracking-wider">Submitting registration...</p>
       </div>
     </section>
   );
@@ -134,7 +150,7 @@ export function RegistrationError({ message, onRetry }: { message: string; onRet
             <AlertCircle size={28} className="text-red-400/70" strokeWidth={1.5} />
           </div>
         </div>
-        <h2 className="cosmic-heading text-2xl mb-3 text-red-400/90">Transmission Failed</h2>
+        <h2 className="cosmic-heading text-2xl mb-3 text-red-400/90">Registration Failed</h2>
         <p className="text-sm text-gray-400 mb-8 leading-relaxed">{message}</p>
         <button onClick={onRetry} className="btn-primary">
           Try Again
