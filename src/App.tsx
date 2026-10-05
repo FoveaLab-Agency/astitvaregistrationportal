@@ -27,6 +27,7 @@ import {
   insertRegistration,
   insertRegistrationEvents,
 } from './lib/registration';
+import { generateAndStorePass, type PassRecord } from './lib/pass';
 
 type Phase = 'form' | 'loading' | 'error';
 
@@ -36,6 +37,7 @@ export default function App() {
   const [participant, setParticipant] = useState<ParticipantData>(EMPTY_PARTICIPANT);
   const [payment, setPayment] = useState<PaymentData>(EMPTY_PAYMENT);
   const [result, setResult] = useState<RegistrationResult | null>(null);
+  const [passRecord, setPassRecord] = useState<PassRecord | null>(null);
   const [phase, setPhase] = useState<Phase>('form');
   const [submitError, setSubmitError] = useState('');
 
@@ -115,8 +117,8 @@ export default function App() {
         selectedEvents.map((e) => ({ id: e.id, price: Number(e.price) }))
       );
 
-      // Step 6: Success
-      setResult({
+      // Step 6: Generate, upload, and record the PDF pass
+      const regResult: RegistrationResult = {
         registrationId,
         participantName: participant.full_name.trim(),
         gender: participant.gender,
@@ -124,7 +126,12 @@ export default function App() {
         totalAmount,
         paymentStatus: 'pending',
         qrToken,
-      });
+      };
+      const pass = await generateAndStorePass(regResult, participant);
+
+      // Step 7: Success — only after pass is stored
+      setResult(regResult);
+      setPassRecord(pass);
       setPhase('form');
       navigate('confirmed');
     } catch (e) {
@@ -144,6 +151,7 @@ export default function App() {
     setParticipant(EMPTY_PARTICIPANT);
     setPayment(EMPTY_PAYMENT);
     setResult(null);
+    setPassRecord(null);
     setPhase('form');
     setSubmitError('');
     navigate('universe');

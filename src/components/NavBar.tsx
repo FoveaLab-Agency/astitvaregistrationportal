@@ -1,4 +1,4 @@
-import { Sparkles, Orbit, Rocket, ContactRound } from 'lucide-react';
+import { Sparkles, Orbit, Rocket, ContactRound, FileText } from 'lucide-react';
 
 export type View =
   | 'universe'
@@ -8,7 +8,8 @@ export type View =
   | 'alignment'
   | 'confirmed'
   | 'pass'
-  | 'existing';
+  | 'existing'
+  | 'passManagement';
 
 type NavProps = {
   view: View;
@@ -68,17 +69,30 @@ export default function NavBar({ view, onNavigate }: NavProps) {
           })}
         </nav>
 
-        <button
-          onClick={() => onNavigate('existing')}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium tracking-wider uppercase transition-all duration-300 ${
-            view === 'existing'
-              ? 'text-stellar-400 border border-stellar-200/30'
-              : 'text-gray-500 hover:text-stellar-400 border border-transparent'
-          }`}
-        >
-          <ContactRound size={14} strokeWidth={1.5} />
-          <span className="hidden sm:inline">Existing Orbit</span>
-        </button>
+        <div className="hidden md:flex items-center gap-1">
+          <button
+            onClick={() => onNavigate('passManagement')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium tracking-wider uppercase transition-all duration-300 ${
+              view === 'passManagement'
+                ? 'text-stellar-400 border border-stellar-200/30'
+                : 'text-gray-500 hover:text-stellar-400 border border-transparent'
+            }`}
+          >
+            <FileText size={14} strokeWidth={1.5} />
+            Passes
+          </button>
+          <button
+            onClick={() => onNavigate('existing')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium tracking-wider uppercase transition-all duration-300 ${
+              view === 'existing'
+                ? 'text-stellar-400 border border-stellar-200/30'
+                : 'text-gray-500 hover:text-stellar-400 border border-transparent'
+            }`}
+          >
+            <ContactRound size={14} strokeWidth={1.5} />
+            <span className="hidden sm:inline">Existing Orbit</span>
+          </button>
+        </div>
       </div>
 
       {/* Mobile nav */}
