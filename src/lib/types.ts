@@ -78,14 +78,6 @@ export function validateParticipant(data: ParticipantData): Record<string, strin
   if (!data.year_semester.trim()) errors.year_semester = 'Year / semester is required';
   if (!data.city.trim()) errors.city = 'City is required';
 
-  if (!data.age.trim()) errors.age = 'Age is required';
-  else {
-    const ageNum = parseInt(data.age, 10);
-    if (isNaN(ageNum) || ageNum < 14 || ageNum > 60) errors.age = 'Enter a valid age (14-60)';
-  }
-
-  if (!data.gender) errors.gender = 'Please select a gender';
-
   return errors;
 }
 
