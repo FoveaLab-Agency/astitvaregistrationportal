@@ -259,10 +259,10 @@ export async function getPassSignedUrl(filePath: string): Promise<string | null>
 /**
  * Fetch all pass records (for organizer Pass Management).
  */
-export async function fetchAllPasses(): Promise<(PassRecord & { registrations_new?: { full_name: string; payment_amount: number } })[]> {
+export async function fetchAllPasses(): Promise<(PassRecord & { registrations?: { full_name: string; payment_amount: number } })[]> {
   const { data, error } = await supabase
     .from('passes')
-    .select('*, registrations_new!inner(full_name, payment_amount)')
+    .select('*, registrations!inner(full_name, payment_amount)')
     .order('created_at', { ascending: false })
     .limit(100);
 
@@ -276,7 +276,7 @@ export async function fetchAllPasses(): Promise<(PassRecord & { registrations_ne
     return (simple as PassRecord[]) ?? [];
   }
 
-  return (data as (PassRecord & { registrations_new?: { full_name: string; payment_amount: number } })[]) ?? [];
+  return (data as (PassRecord & { registrations?: { full_name: string; payment_amount: number } })[]) ?? [];
 }
 
 /**

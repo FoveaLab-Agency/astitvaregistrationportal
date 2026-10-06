@@ -23,7 +23,7 @@ export default function VerifyPage({ token }: VerifyPageProps) {
       try {
         // Fetch registration by qr_token
         const { data: reg, error: regError } = await supabase
-          .from('registrations_new')
+          .from('registrations')
           .select('*')
           .eq('qr_token', token.trim())
           .maybeSingle();
@@ -35,7 +35,7 @@ export default function VerifyPage({ token }: VerifyPageProps) {
 
         // Fetch linked events
         const { data: regEvents, error: evError } = await supabase
-          .from('registration_events_new')
+          .from('registration_events')
           .select('event_id')
           .eq('registration_id', (reg as RegistrationRow).id);
 
@@ -43,7 +43,7 @@ export default function VerifyPage({ token }: VerifyPageProps) {
         if (!evError && regEvents && regEvents.length > 0) {
           const eventIds = regEvents.map((re: { event_id: string }) => re.event_id);
           const { data: eventRows } = await supabase
-            .from('events_new')
+            .from('events')
             .select('*')
             .in('id', eventIds);
           events = (eventRows as EventRow[]) ?? [];

@@ -35,7 +35,7 @@ export async function generateUniqueRegistrationId(eventCount: number): Promise<
   for (let attempt = 0; attempt < 5; attempt++) {
     const id = generateRegistrationId(eventCount);
     const { data, error } = await supabase
-      .from('registrations_new')
+      .from('registrations')
       .select('registration_id')
       .eq('registration_id', id)
       .maybeSingle();
@@ -49,7 +49,7 @@ export async function generateUniqueRegistrationId(eventCount: number): Promise<
 export async function checkDuplicate(mobile: string, email: string): Promise<boolean> {
   const normalizedEmail = email.trim().toLowerCase();
   const { data, error } = await supabase
-    .from('registrations_new')
+    .from('registrations')
     .select('id')
     .or(`mobile.eq.${mobile.trim()},email.eq.${normalizedEmail}`)
     .maybeSingle();
@@ -63,7 +63,7 @@ export async function checkDuplicate(mobile: string, email: string): Promise<boo
 
 export async function fetchActiveEvents(): Promise<EventRow[]> {
   const { data, error } = await supabase
-    .from('events_new')
+    .from('events')
     .select('*')
     .eq('is_active', true)
     .order('name', { ascending: true });
@@ -77,7 +77,7 @@ export async function fetchActiveEvents(): Promise<EventRow[]> {
 
 export async function fetchRegistrationByPublicId(publicId: string): Promise<RegistrationRow | null> {
   const { data, error } = await supabase
-    .from('registrations_new')
+    .from('registrations')
     .select('*')
     .eq('registration_id', publicId.trim().toUpperCase())
     .maybeSingle();
@@ -88,7 +88,7 @@ export async function fetchRegistrationByPublicId(publicId: string): Promise<Reg
 
 export async function fetchRegistrationEvents(regUuid: string): Promise<{ event_id: string; price_at_registration: number }[]> {
   const { data, error } = await supabase
-    .from('registration_events_new')
+    .from('registration_events')
     .select('event_id, price_at_registration')
     .eq('registration_id', regUuid);
 
@@ -142,7 +142,7 @@ export async function insertRegistration(
   input: RegistrationInput
 ): Promise<{ id: string }> {
   const { data, error } = await supabase
-    .from('registrations_new')
+    .from('registrations')
     .insert({
       registration_id: input.registration_id,
       full_name: input.full_name,
@@ -173,7 +173,7 @@ export async function insertRegistration(
 
 /**
  * Insert multiple registration-event links in a single batch call.
- * Uses the registration's UUID (registrations_new.id), NOT the public text registration_id.
+ * Uses the registration's UUID (registrations.id), NOT the public text registration_id.
  */
 export async function insertRegistrationEvents(
   registrationUuid: string,
@@ -186,7 +186,7 @@ export async function insertRegistrationEvents(
   }));
 
   const { error } = await supabase
-    .from('registration_events_new')
+    .from('registration_events')
     .insert(rows);
 
   if (error) {

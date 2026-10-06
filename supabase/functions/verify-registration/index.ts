@@ -37,7 +37,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const { data: registration, error: regError } = await supabase
-      .from("registrations_new")
+      .from("registrations")
       .select("registration_id, full_name, status, payment_status, event_name")
       .eq("qr_token", token)
       .maybeSingle();
@@ -51,10 +51,10 @@ Deno.serve(async (req: Request) => {
 
     // Fetch linked event
     const { data: regEvent } = await supabase
-      .from("registration_events_new")
+      .from("registration_events")
       .select("event_id")
       .eq("registration_id", (await supabase
-        .from("registrations_new")
+        .from("registrations")
         .select("id")
         .eq("qr_token", token)
         .maybeSingle()
@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
     let eventName: string | null = null;
     if (regEvent?.event_id) {
       const { data: event } = await supabase
-        .from("events_new")
+        .from("events")
         .select("name")
         .eq("id", regEvent.event_id)
         .maybeSingle();
