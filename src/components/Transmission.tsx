@@ -27,39 +27,6 @@ export default function Transmission({ payment, onChange, selectedEvents, onBack
   const individualTotal = counts.individual * 100;
   const groupTotal = counts.group * 300;
 
-  const handleFile = (file: File) => {
-    if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
-      setErrors((prev) => ({ ...prev, screenshot: 'Only JPG, JPEG, and PNG files are allowed' }));
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors((prev) => ({ ...prev, screenshot: 'File size must be under 5MB' }));
-      return;
-    }
-    const previewUrl = URL.createObjectURL(file);
-    onChange({ ...payment, screenshotFile: file, screenshotUrl: previewUrl });
-    setErrors((prev) => ({ ...prev, screenshot: '' }));
-  };
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
-  };
-
-  const removeFile = () => {
-    if (payment.screenshotUrl) URL.revokeObjectURL(payment.screenshotUrl);
-    onChange({ ...payment, screenshotFile: null, screenshotUrl: '' });
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleSubmit = () => {
-    const allErrors = validatePayment(payment);
-    setErrors(allErrors);
-    setTouched({ utr: true, screenshot: true });
-    if (Object.values(allErrors).some((e) => e)) return;
-    onContinue();
-  };
-
   return (
     <section className="relative min-h-screen cosmic-bg pt-24 pb-20 px-6 md:px-8 overflow-hidden">
       <Starfield density={30} />
