@@ -36,31 +36,27 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false },
     });
 
-    const { data: registration, error: regError } = await supabase
-      .from("registrations")
-      .select("registration_id, full_name, status, payment_status, event_name")
-      .eq("qr_token", token)
-      .maybeSingle();
+    // Fetch registration details
+const { data: registration, error: regError } = await supabase
+  .from("registrations")
+  .select("id, registration_id, full_name, status, payment_status, event_name")
+  .eq("qr_token", token)
+  .maybeSingle();
 
-    if (regError || !registration) {
-      return new Response(
-        JSON.stringify({ valid: false, error: "Invalid or expired verification token" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+if (regError || !registration) {
+  return new Response(JSON.stringify({ valid: false, error: "Invalid or expired verification token" }), {
+    status: 404,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
-    // Fetch linked event
-    const { data: regEvent } = await supabase
-      .from("registration_events")
-      .select("event_id")
-      .eq("registration_id", (await supabase
-        .from("registrations")
-        .select("id")
-        .eq("qr_token", token)
-        .maybeSingle()
-      ).data?.id)
-      .maybeSingle();
-
+// Reuse registration.id directly
+const { data: regEvent } = await supabase
+  .from("registration_events")
+  .select("event_id")
+  .eq("registration_id", registration.id)
+  .maybeSingle();
+    
     let eventName: string | null = null;
     if (regEvent?.event_id) {
       const { data: event } = await supabase
